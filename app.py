@@ -79,46 +79,44 @@ if uploaded_file is not None:
         st.subheader("📊 Visualizations")
 
         numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
-        if len(numeric_cols) >= 2:
+        if len(numeric_cols) >= 1:
             chart_type = st.selectbox("📋 Choose Chart Type", ["Scatter Plot", "Histogram", "Box Plot", "Pair Plot"])
 
-            col1 = st.selectbox("📈 Select X-axis", numeric_cols)
-            col2 = st.selectbox("📉 Select Y-axis", numeric_cols, index=1)
-
-            if chart_type == "Scatter Plot":
-                st.write(f"📌 Scatter Plot: {col1} vs {col2}")
-                fig, ax = plt.subplots()
-                sns.scatterplot(x=df[col1], y=df[col2], ax=ax)
-                st.pyplot(fig)
-
-                # === Auto Caption Logic ===
-                corr = df[[col1, col2]].corr().iloc[0, 1]
-                if abs(corr) > 0.7:
-                    strength = "strong"
-                elif abs(corr) > 0.4:
-                    strength = "moderate"
-                elif abs(corr) > 0.2:
-                    strength = "weak"
-                else:
-                    strength = "very weak or no"
-                direction = "positive" if corr > 0 else "negative" if corr < 0 else "no"
-                st.markdown(f"📝 **Caption**: There is a {strength} {direction} correlation between **{col1}** and **{col2}** (correlation = `{corr:.2f}`).")
-
-            elif chart_type == "Histogram":
-                st.write(f"📌 Histogram for {col1}")
-                fig, ax = plt.subplots()
-                sns.histplot(df[col1], kde=True, ax=ax)
-                st.pyplot(fig)
-
-            elif chart_type == "Box Plot":
-                st.write(f"📌 Box Plot for {col1}")
-                fig, ax = plt.subplots()
-                sns.boxplot(y=df[col1], ax=ax)
-                st.pyplot(fig)
-
-            elif chart_type == "Pair Plot":
+            if chart_type == "Pair Plot":
                 st.write("📌 Pair Plot")
                 fig = sns.pairplot(df[numeric_cols[:4]])
+                st.pyplot(fig)
+
+            else:
+                col1 = st.selectbox("📈 Select Column (X-axis for scatter)", numeric_cols)
+                col2 = st.selectbox("📉 Select Y-axis", numeric_cols, index=1) if chart_type == "Scatter Plot" else None
+
+                fig, ax = plt.subplots()
+
+                if chart_type == "Scatter Plot":
+                    st.write(f"📌 Scatter Plot: {col1} vs {col2}")
+                    sns.scatterplot(x=df[col1], y=df[col2], ax=ax)
+
+                    corr = df[[col1, col2]].corr().iloc[0, 1]
+                    if abs(corr) > 0.7:
+                        strength = "strong"
+                    elif abs(corr) > 0.4:
+                        strength = "moderate"
+                    elif abs(corr) > 0.2:
+                        strength = "weak"
+                    else:
+                        strength = "very weak or no"
+                    direction = "positive" if corr > 0 else "negative" if corr < 0 else "no"
+                    st.markdown(f"📝 **Caption**: There is a {strength} {direction} correlation between **{col1}** and **{col2}** (correlation = `{corr:.2f}`).")
+
+                elif chart_type == "Histogram":
+                    st.write(f"📌 Histogram for {col1}")
+                    sns.histplot(df[col1], kde=True, ax=ax)
+
+                elif chart_type == "Box Plot":
+                    st.write(f"📌 Box Plot for {col1}")
+                    sns.boxplot(y=df[col1], ax=ax)
+
                 st.pyplot(fig)
         else:
             st.warning("⚠️ Not enough numeric columns to generate visualizations.")
