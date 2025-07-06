@@ -80,32 +80,48 @@ if uploaded_file is not None:
 
         numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
         if len(numeric_cols) >= 2:
+            chart_type = st.selectbox("📋 Choose Chart Type", ["Scatter Plot", "Histogram", "Box Plot", "Pair Plot"])
+
             col1 = st.selectbox("📈 Select X-axis", numeric_cols)
             col2 = st.selectbox("📉 Select Y-axis", numeric_cols, index=1)
 
-            st.write(f"📌 Scatter Plot: {col1} vs {col2}")
-            fig, ax = plt.subplots()
-            sns.scatterplot(x=df[col1], y=df[col2], ax=ax)
-            st.pyplot(fig)
+            if chart_type == "Scatter Plot":
+                st.write(f"📌 Scatter Plot: {col1} vs {col2}")
+                fig, ax = plt.subplots()
+                sns.scatterplot(x=df[col1], y=df[col2], ax=ax)
+                st.pyplot(fig)
 
-            # === Auto Caption Logic ===
-            corr = df[[col1, col2]].corr().iloc[0, 1]
+                # === Auto Caption Logic ===
+                corr = df[[col1, col2]].corr().iloc[0, 1]
+                if abs(corr) > 0.7:
+                    strength = "strong"
+                elif abs(corr) > 0.4:
+                    strength = "moderate"
+                elif abs(corr) > 0.2:
+                    strength = "weak"
+                else:
+                    strength = "very weak or no"
+                direction = "positive" if corr > 0 else "negative" if corr < 0 else "no"
+                st.markdown(f"📝 **Caption**: There is a {strength} {direction} correlation between **{col1}** and **{col2}** (correlation = `{corr:.2f}`).")
 
-            if abs(corr) > 0.7:
-                strength = "strong"
-            elif abs(corr) > 0.4:
-                strength = "moderate"
-            elif abs(corr) > 0.2:
-                strength = "weak"
-            else:
-                strength = "very weak or no"
+            elif chart_type == "Histogram":
+                st.write(f"📌 Histogram for {col1}")
+                fig, ax = plt.subplots()
+                sns.histplot(df[col1], kde=True, ax=ax)
+                st.pyplot(fig)
 
-            direction = "positive" if corr > 0 else "negative" if corr < 0 else "no"
+            elif chart_type == "Box Plot":
+                st.write(f"📌 Box Plot for {col1}")
+                fig, ax = plt.subplots()
+                sns.boxplot(y=df[col1], ax=ax)
+                st.pyplot(fig)
 
-            st.markdown(f"📝 **Caption**: There is a {strength} {direction} correlation between **{col1}** and **{col2}** (correlation = `{corr:.2f}`).")
-
+            elif chart_type == "Pair Plot":
+                st.write("📌 Pair Plot")
+                fig = sns.pairplot(df[numeric_cols[:4]])
+                st.pyplot(fig)
         else:
-            st.warning("⚠️ Not enough numeric columns to generate scatter plot.")
+            st.warning("⚠️ Not enough numeric columns to generate visualizations.")
 
     with tab3:
         st.subheader("💡 Generated Insights")
@@ -126,6 +142,35 @@ if uploaded_file is not None:
                 st.markdown(ins)
         else:
             st.info("🤷‍♀️ No strong insights found. Try a bigger or more varied dataset.")
+
+        # === Report Generation ===
+        st.markdown("---")
+        st.subheader("📝 Download Report")
+
+        report_lines = [
+            f"📁 Filename: {uploaded_file.name}",
+            f"📐 Shape: {df.shape[0]} rows × {df.shape[1]} columns",
+            f"🧾 Columns: {', '.join(df.columns)}",
+            "❗ Null Values Per Column:"
+        ]
+        nulls = df.isnull().sum()
+        for col, val in nulls.items():
+            report_lines.append(f"  - {col}: {val}")
+        report_lines.append("\n💡 Insights:")
+        if insights:
+            for i in insights:
+                report_lines.append(f"- {i.replace('**', '')}")
+        else:
+            report_lines.append("- No strong insights found.")
+
+        report_text = "\n".join(report_lines)
+
+        st.download_button(
+            label="📥 Download .txt Report",
+            data=report_text,
+            file_name=f"{uploaded_file.name.split('.')[0]}_report.txt",
+            mime="text/plain"
+        )
 
 else:
     st.warning("📤 Please upload a CSV file to begin analysis.")
